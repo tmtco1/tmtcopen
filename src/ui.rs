@@ -27,7 +27,7 @@ pub fn build_ui(app: &Application) {
     if let Some(visual) = screen.rgba_visual() { overlay_win.set_visual(Some(&visual)); }
     overlay_win.set_events(EventMask::BUTTON_PRESS_MASK | EventMask::BUTTON_RELEASE_MASK | EventMask::POINTER_MOTION_MASK);
 
-    let menu_win = ApplicationWindow::builder().application(app).title("tcopen").resizable(false).build();
+    let menu_win = ApplicationWindow::builder().application(app).title("").resizable(false).build();
     menu_win.set_keep_above(true);
     menu_win.set_type_hint(WindowTypeHint::Dialog);
     menu_win.move_(20, (geometry.height() / 2) - 150);
@@ -38,6 +38,7 @@ pub fn build_ui(app: &Application) {
     let panel = GtkBox::new(Orientation::Vertical, 6);
     panel.set_margin_start(10); panel.set_margin_end(10);
     panel.set_margin_top(10); panel.set_margin_bottom(10);
+    panel.set_size_request(150, -1);
     menu_win.add(&panel);
 
     let history_box = GtkBox::new(Orientation::Horizontal, 4);
@@ -63,7 +64,7 @@ pub fn build_ui(app: &Application) {
     let passthrough_btn = Button::with_label("Mod: Çizim");
     panel.pack_start(&passthrough_btn, false, false, 0);
 
-    let clear_btn = Button::with_label("Hepsini Sil");
+    let clear_btn = Button::with_label("Temizle");
     panel.pack_start(&clear_btn, false, false, 0);
 
     overlay_win.connect_draw(clone!(@strong state => move |_, cr| {
