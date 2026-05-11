@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=tmtcopen
+Exec=/usr/bin/tmtcopen
+Icon=/usr/share/pixmaps/tmtcopen.png
+Comment=tmtcopen by tmtco1
