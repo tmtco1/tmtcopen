@@ -3,6 +3,9 @@
 echo tmtcopen by İsmail Uygar
 echo Kurulum Başlatılıyor...
 
+echo maim indiriliyor
+sudo apt install maim -y
+
 echo tmtcopen binarysi kopyalanıyor...
 sudo cp tmtcopen /usr/bin/tmtcopen
 sudo chmod +x /usr/bin/tmtcopen
