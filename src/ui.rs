@@ -1,6 +1,5 @@
-
-use crate::render::draw_stroke;
-use crate::state::{AppState, ViewMode};
+use crate::render::{draw_eraser_cursor, draw_line_preview, draw_stroke};
+use crate::state::{AppState, Tool, ViewMode};
 use crate::window_utils::apply_input_shape;
 
 use gdk::prelude::*;
@@ -12,14 +11,7 @@ use glib::clone;
 
 use gtk::prelude::*;
 use gtk::{
-    Application,
-    ApplicationWindow,
-    Box as GtkBox,
-    Button,
-    ColorButton,
-    Orientation,
-    Scale,
-    Window,
+    Application, ApplicationWindow, Box as GtkBox, Button, ColorButton, Orientation, Scale, Window,
     WindowType,
 };
 
@@ -46,9 +38,9 @@ fn capture_area() -> Option<Pixbuf> {
 
 fn seq_to_key(seq: Option<gdk::EventSequence>) -> u32 {
     match seq {
-        Some(s) => {
-            unsafe { std::mem::transmute::<gdk::EventSequence, *mut std::ffi::c_void>(s) as u32 }
-        }
+        Some(s) => unsafe {
+            std::mem::transmute::<gdk::EventSequence, *mut std::ffi::c_void>(s) as u32
+        },
         None => 0,
     }
 }
@@ -86,31 +78,35 @@ pub fn build_ui(app: &Application) {
 
     menu_win.set_keep_above(true);
     menu_win.set_type_hint(WindowTypeHint::Dialog);
+    menu_win.set_size_request(140, -1);
     menu_win.move_(20, (geometry.height() / 2) - 150);
 
     let state = Rc::new(RefCell::new(AppState::new()));
 
     let (r, g, b) = state.borrow().color;
 
-    let panel = GtkBox::new(Orientation::Vertical, 6);
-    panel.set_margin_start(10);
-    panel.set_margin_end(10);
-    panel.set_margin_top(10);
-    panel.set_margin_bottom(10);
-    panel.set_size_request(170, -1);
+    let panel = GtkBox::new(Orientation::Vertical, 4);
+    panel.set_margin_start(4);
+    panel.set_margin_end(4);
+    panel.set_margin_top(4);
+    panel.set_margin_bottom(4);
+    panel.set_size_request(120, -1);
     menu_win.add(&panel);
 
-    let history_box = GtkBox::new(Orientation::Horizontal, 4);
+    let history_box = GtkBox::new(Orientation::Horizontal, 2);
     let undo_btn = Button::with_label("↩️");
     let redo_btn = Button::with_label("↪️");
     history_box.pack_start(&undo_btn, true, true, 0);
     history_box.pack_start(&redo_btn, true, true, 0);
     panel.pack_start(&history_box, false, false, 0);
 
-    let pen_btn = Button::with_label("✏️ Kalem");
-    let eraser_btn = Button::with_label("⬜ Silgi");
-    panel.pack_start(&pen_btn, false, false, 0);
-    panel.pack_start(&eraser_btn, false, false, 0);
+    let tool_select_btn = Button::with_label("Kalem");
+    tool_select_btn.set_halign(gtk::Align::Fill);
+    panel.pack_start(&tool_select_btn, false, false, 0);
+
+    let active_popup: Rc<RefCell<Option<Window>>> = Rc::new(RefCell::new(None));
+    let initial_w: Rc<RefCell<i32>> = Rc::new(RefCell::new(0));
+    let initial_h: Rc<RefCell<i32>> = Rc::new(RefCell::new(0));
 
     let color_btn = ColorButton::new();
     color_btn.set_rgba(&RGBA::new(r, g, b, 1.0));
@@ -118,9 +114,11 @@ pub fn build_ui(app: &Application) {
 
     let size_scale = Scale::with_range(Orientation::Horizontal, 1.0, 40.0, 1.0);
     size_scale.set_value(state.borrow().brush_size);
+    size_scale.set_size_request(-1, 20);
     panel.pack_start(&size_scale, false, false, 0);
 
     let passthrough_btn = Button::with_label("Mod: Çizim");
+    passthrough_btn.set_halign(gtk::Align::Fill);
     panel.pack_start(&passthrough_btn, false, false, 0);
 
     let zoom_btn = Button::with_label("Alan Seç");
@@ -128,6 +126,87 @@ pub fn build_ui(app: &Application) {
 
     let clear_btn = Button::with_label("Temizle");
     panel.pack_start(&clear_btn, false, false, 0);
+
+    // --- Tool selector popup ---
+    tool_select_btn.connect_clicked(
+        clone!(@strong state, @strong overlay_win, @strong menu_win, @strong active_popup, @strong tool_select_btn, @strong initial_w, @strong initial_h => move |_| {
+            if let Some(existing) = active_popup.borrow_mut().take() {
+                unsafe { existing.destroy(); }
+                return;
+            }
+
+            let screen = gdk::Screen::default().unwrap();
+
+            let popup = Window::new(WindowType::Toplevel);
+            popup.set_decorated(false);
+            popup.set_keep_above(true);
+            popup.set_type_hint(WindowTypeHint::Dialog);
+            popup.set_default_size(180, -1);
+            popup.set_resizable(false);
+
+            if let Some(visual) = screen.rgba_visual() {
+                popup.set_visual(Some(&visual));
+            }
+
+            let popup_box = GtkBox::new(Orientation::Vertical, 4);
+            popup_box.set_margin_start(8);
+            popup_box.set_margin_end(8);
+            popup_box.set_margin_top(8);
+            popup_box.set_margin_bottom(8);
+            popup.add(&popup_box);
+
+            let tools = [
+                (Tool::Pen, "Kalem"),
+                (Tool::StraightLine, "Düz Çizgi"),
+                (Tool::DashedLine, "Kesikli Çizgi"),
+                (Tool::Highlighter, "Highlighter"),
+                (Tool::Eraser, "Silgi"),
+            ];
+
+            for (tool, label) in tools.iter() {
+                let btn = Button::with_label(label);
+                let t = tool.clone();
+                let l = label.to_string();
+                let popup_ref = popup.clone();
+                let state_ref = state.clone();
+                let overlay_ref = overlay_win.clone();
+                let btn_ref = tool_select_btn.clone();
+                let active_ref = active_popup.clone();
+                let menu_win_ref = menu_win.clone();
+                let initial_w_ref = initial_w.clone();
+                let initial_h_ref = initial_h.clone();
+                btn.connect_clicked(move |_| {
+                    state_ref.borrow_mut().tool = t.clone();
+                    btn_ref.set_label(&l);
+                    active_ref.borrow_mut().take();
+                    overlay_ref.queue_draw();
+                    unsafe { popup_ref.destroy(); }
+                    let w = *initial_w_ref.borrow();
+                    let h = *initial_h_ref.borrow();
+                    if w > 0 { menu_win_ref.resize(w, h); }
+                });
+                popup_box.pack_start(&btn, false, false, 0);
+            }
+
+            if let Some(ref gdk_win) = menu_win.window() {
+                let (wx, wy) = gdk_win.position();
+                let ww = gdk_win.width();
+                popup.move_(wx + ww + 5, wy);
+            }
+
+            *active_popup.borrow_mut() = Some(popup.clone());
+            popup.show_all();
+
+            {
+                let active_ref = active_popup.clone();
+                popup.connect_focus_out_event(move |w, _| {
+                    *active_ref.borrow_mut() = None;
+                    unsafe { w.destroy(); }
+                    glib::Propagation::Proceed.into()
+                });
+            }
+        }),
+    );
 
     overlay_win.connect_draw(clone!(@strong state => move |widget, cr| {
         let mut st = state.borrow_mut();
@@ -162,6 +241,17 @@ pub fn build_ui(app: &Application) {
             draw_stroke(cr, stroke);
         }
 
+        if let Some((ref start, ref end)) = st.line_preview {
+            let is_dashed = st.tool == Tool::DashedLine;
+            draw_line_preview(cr, start.x, start.y, end.x, end.y, st.color, st.brush_size, is_dashed);
+        }
+
+        if st.tool == Tool::Eraser {
+            if let Some(ref pos) = st.cursor_pos {
+                draw_eraser_cursor(cr, pos.x, pos.y, st.brush_size * 2.5);
+            }
+        }
+
         glib::Propagation::Proceed.into()
     }));
 
@@ -170,6 +260,9 @@ pub fn build_ui(app: &Application) {
         if st.passthrough { return glib::Propagation::Proceed.into(); }
 
         let (x, y) = ev.position();
+        if st.tool == Tool::Eraser {
+            st.cursor_pos = Some(crate::state::Point { x, y });
+        }
         st.begin_stroke(0, x, y);
         win.queue_draw();
         glib::Propagation::Stop.into()
@@ -177,11 +270,29 @@ pub fn build_ui(app: &Application) {
 
     overlay_win.connect_motion_notify_event(clone!(@strong state => move |win, ev| {
         let mut st = state.borrow_mut();
-        if st.passthrough || !st.active_strokes.contains_key(&0) {
+        if st.passthrough { return glib::Propagation::Proceed.into(); }
+
+        let (x, y) = ev.position();
+
+        if st.tool == Tool::Eraser {
+            st.cursor_pos = Some(crate::state::Point { x, y });
+            win.queue_draw();
+        }
+
+        if st.tool == Tool::StraightLine {
+            if st.line_start.is_some() {
+                if let Some((rx, ry, rw, rh)) = st.extend_stroke(0, x, y) {
+                    win.queue_draw_area(rx, ry, rw, rh);
+                }
+                return glib::Propagation::Stop.into();
+            }
             return glib::Propagation::Proceed.into();
         }
 
-        let (x, y) = ev.position();
+        if !st.active_strokes.contains_key(&0) {
+            return glib::Propagation::Proceed.into();
+        }
+
         if let Some((rx, ry, rw, rh)) = st.extend_stroke(0, x, y) {
             win.queue_draw_area(rx, ry, rw, rh);
         }
@@ -263,12 +374,16 @@ pub fn build_ui(app: &Application) {
     }));
 
     passthrough_btn.connect_clicked(
-        clone!(@strong state, @strong overlay_win, @strong menu_win => move |btn| {
+        clone!(@strong state, @strong overlay_win, @strong menu_win, @strong initial_w, @strong initial_h => move |btn| {
             let mut st = state.borrow_mut();
             st.passthrough = !st.passthrough;
             let is_p = st.passthrough;
             btn.set_label(if is_p { "Mod: Tıklama" } else { "Mod: Çizim" });
             apply_input_shape(&overlay_win, &menu_win, is_p);
+            drop(st);
+            let w = *initial_w.borrow();
+            let h = *initial_h.borrow();
+            if w > 0 { menu_win.resize(w, h); }
         }),
     );
 
@@ -324,16 +439,10 @@ pub fn build_ui(app: &Application) {
         }),
     );
 
-    pen_btn.connect_clicked(clone!(@strong state => move |_| {
-        use crate::state::Tool;
-        state.borrow_mut().tool = Tool::Pen;
-    }));
-
-    eraser_btn.connect_clicked(clone!(@strong state => move |_| {
-        use crate::state::Tool;
-        state.borrow_mut().tool = Tool::Eraser;
-    }));
-
     overlay_win.show_all();
     menu_win.show_all();
+
+    *initial_w.borrow_mut() = menu_win.allocated_width();
+    *initial_h.borrow_mut() = menu_win.allocated_height();
+    menu_win.set_size_request(*initial_w.borrow(), *initial_h.borrow());
 }

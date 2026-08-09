@@ -1,6 +1,6 @@
 # <img src="resources/logo.png" width="60"> tmtcopen
 
-**tmtcopen**, Pardus ETAP yüklü akıllı tahtalar için özel olarak optimize edilmiş, Rust ile geliştirilmiş bir ekrana çizim yapma uygulamasıdır. Ancak tüm X11 pencere yöneticilerinde kullanılabilir(Wayland'e tam destek yok).
+**tmtcopen**, Pardus yüklü akıllı tahtalar için özel olarak optimize edilmiş, Rust ile geliştirilmiş bir ekrana çizim yapma uygulamasıdır. Ancak tüm X11 pencere yöneticilerinde kullanılabilir(Wayland'e tam destek yok).
 
 ### Özellikler:
 * Kalınlık ve renk seçimlerini hatırlar
@@ -9,11 +9,16 @@
 * Ekran alan yakınlaştırma
 
 ### Kurulum
-* [tmtcopen.zip](https://github.com/tmtco1/tmtcopen/releases/latest/download/tmtcopen.zip) dosyasını indirin
-* Dosyayı açın
-* ./kurulum.sh dosyasını çalıştırın
+* [Releases](https://github.com/tmtco1/tmtcopen/releases/latest/) kısmından .deb dosyasını indirip kurun
+
 
 ## Değişiklikler
+### v0.4.0
+* Araçlar için yeni pop-up penceresi oluşturuldu
+* Kesikli çizgi, düz çizgi ve highlighter araçları eklendi
+* Silgi aracı için yuvarlak kenara sahip bir imleç eklendi
+* Ana pencere daha küçük hale getirildi
+
 ### v0.3.0
 * Optimizasyon problemleri çözüldü
 * Çoklu çizme eklendi
