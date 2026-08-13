@@ -68,6 +68,8 @@ pub struct AppState {
     pub line_start: Option<Point>,
     pub line_preview: Option<(Point, Point)>,
     pub cursor_pos: Option<Point>,
+    pub touch_active: bool,
+    pub background_color: (f64, f64, f64),
 }
 
 fn dirty_rect(x0: f64, y0: f64, x1: f64, y1: f64, width: f64) -> (i32, i32, i32, i32) {
@@ -104,6 +106,8 @@ impl AppState {
             line_start: None,
             line_preview: None,
             cursor_pos: None,
+            touch_active: false,
+            background_color: (1.0, 1.0, 1.0),
         }
     }
 

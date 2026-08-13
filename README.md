@@ -7,18 +7,15 @@
 * Çizimleri silmeden ekran dokunmatiğini aktif edebilir
 * Kalem/Silgi/Temizle/Geri Al/İleri Al fonksiyonları
 * Ekran alan yakınlaştırma
+* Ekran arka planı ekleme
 
 ### Kurulum
 * [Releases](https://github.com/tmtco1/tmtcopen/releases/latest/) kısmından .deb dosyasını indirip kurun
 
 
 ## Değişiklikler
-### v0.4.0
-* Araçlar için yeni pop-up penceresi oluşturuldu
-* Kesikli çizgi, düz çizgi ve highlighter araçları eklendi
-* Silgi aracı için yuvarlak kenara sahip bir imleç eklendi
-* Ana pencere daha küçük hale getirildi
+### v0.4.1
+* Hızlı renk seçimi için hazır renkler eklendi
+* Arkaplan için Siyah, Beyaz ve Dosya Seç seçeneği eklendi.
 
-### v0.3.0
-* Optimizasyon problemleri çözüldü
-* Çoklu çizme eklendi
+_Daha eski değişiklikler için [CHANGELOG.md](./CHANGELOG.md) dosyasına göz atın._
