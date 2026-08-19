@@ -1,4 +1,8 @@
 ## Değişiklikler
+### v0.4.2
+* Açılan pop-up'lar için herhangi bir yere basınca kapatma eklendi.
+* Başka pop-up açmayı tetikleyen butonlar için öncekini kapatıp yenisini açmama problemi çözüldü.
+
 ### v0.4.1
 * Hızlı renk seçimi için hazır renkler eklendi
 * Arkaplan için Siyah, Beyaz ve Dosya Seç seçeneği eklendi.

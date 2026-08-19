@@ -1,5 +1,7 @@
 # <img src="resources/logo.png" width="60"> tmtcopen
 
+![ekrangoruntusu](resources/screenshoot.png)
+
 **tmtcopen**, Pardus yüklü akıllı tahtalar için özel olarak optimize edilmiş, Rust ile geliştirilmiş bir ekrana çizim yapma uygulamasıdır. Ancak tüm X11 pencere yöneticilerinde kullanılabilir(Wayland'e tam destek yok).
 
 ### Özellikler:
@@ -14,8 +16,7 @@
 
 
 ## Değişiklikler
-### v0.4.1
-* Hızlı renk seçimi için hazır renkler eklendi
-* Arkaplan için Siyah, Beyaz ve Dosya Seç seçeneği eklendi.
+### v0.4.2
+* Kullanıcı deneyimi geliştirildi, detaylı bilgi için CHANGELOG.md dosyasına bakın.
 
-_Daha eski değişiklikler için [CHANGELOG.md](./CHANGELOG.md) dosyasına göz atın._
+Daha eski değişiklikler için [CHANGELOG.md](./CHANGELOG.md) dosyasına göz atın.

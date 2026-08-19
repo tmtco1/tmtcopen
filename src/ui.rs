@@ -105,6 +105,7 @@ pub fn build_ui(app: &Application) {
     let active_popup: Rc<RefCell<Option<Window>>> = Rc::new(RefCell::new(None));
     let initial_w: Rc<RefCell<i32>> = Rc::new(RefCell::new(0));
     let initial_h: Rc<RefCell<i32>> = Rc::new(RefCell::new(0));
+    let popup_source: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(None));
 
     let (cr, cg, cb) = state.borrow().color;
     let color_select_btn = ColorButton::new();
@@ -129,10 +130,16 @@ pub fn build_ui(app: &Application) {
 
     // --- Tool selector popup ---
     tool_select_btn.connect_clicked(
-        clone!(@strong state, @strong overlay_win, @strong menu_win, @strong active_popup, @strong tool_select_btn, @strong initial_w, @strong initial_h => move |_| {
+        clone!(@strong state, @strong overlay_win, @strong menu_win, @strong active_popup, @strong tool_select_btn, @strong initial_w, @strong initial_h, @strong popup_source => move |_| {
+            if *popup_source.borrow() == Some("tool".to_string()) {
+                if let Some(existing) = active_popup.borrow_mut().take() {
+                    unsafe { existing.destroy(); }
+                }
+                *popup_source.borrow_mut() = None;
+                return;
+            }
             if let Some(existing) = active_popup.borrow_mut().take() {
                 unsafe { existing.destroy(); }
-                return;
             }
 
             let screen = gdk::Screen::default().unwrap();
@@ -195,12 +202,15 @@ pub fn build_ui(app: &Application) {
             }
 
             *active_popup.borrow_mut() = Some(popup.clone());
+            *popup_source.borrow_mut() = Some("tool".to_string());
             popup.show_all();
 
             {
                 let active_ref = active_popup.clone();
+                let source_ref = popup_source.clone();
                 popup.connect_focus_out_event(move |w, _| {
                     *active_ref.borrow_mut() = None;
+                    *source_ref.borrow_mut() = None;
                     unsafe { w.destroy(); }
                     glib::Propagation::Proceed.into()
                 });
@@ -258,7 +268,13 @@ pub fn build_ui(app: &Application) {
         glib::Propagation::Proceed.into()
     }));
 
-    overlay_win.connect_button_press_event(clone!(@strong state => move |win, ev| {
+    overlay_win.connect_button_press_event(clone!(@strong state, @strong active_popup, @strong popup_source => move |win, ev| {
+        if let Some(popup) = active_popup.borrow_mut().take() {
+            *popup_source.borrow_mut() = None;
+            unsafe { popup.destroy(); }
+            return glib::Propagation::Stop.into();
+        }
+
         let mut st = state.borrow_mut();
         if st.passthrough { return glib::Propagation::Proceed.into(); }
 
@@ -309,7 +325,13 @@ pub fn build_ui(app: &Application) {
         glib::Propagation::Stop.into()
     }));
 
-    overlay_win.connect_touch_event(clone!(@strong state => move |win, ev| {
+    overlay_win.connect_touch_event(clone!(@strong state, @strong active_popup, @strong popup_source => move |win, ev| {
+        if let Some(popup) = active_popup.borrow_mut().take() {
+            *popup_source.borrow_mut() = None;
+            unsafe { popup.destroy(); }
+            return glib::Propagation::Stop.into();
+        }
+
         let mut st = state.borrow_mut();
         if st.passthrough { return glib::Propagation::Proceed.into(); }
 
@@ -378,10 +400,16 @@ pub fn build_ui(app: &Application) {
     }));
 
     color_select_btn.connect_button_press_event(
-        clone!(@strong state, @strong overlay_win, @strong active_popup, @strong color_select_btn, @strong menu_win => move |btn, _| {
+        clone!(@strong state, @strong overlay_win, @strong active_popup, @strong color_select_btn, @strong menu_win, @strong popup_source => move |btn, _| {
+            if *popup_source.borrow() == Some("color".to_string()) {
+                if let Some(existing) = active_popup.borrow_mut().take() {
+                    unsafe { existing.destroy(); }
+                }
+                *popup_source.borrow_mut() = None;
+                return glib::Propagation::Stop.into();
+            }
             if let Some(existing) = active_popup.borrow_mut().take() {
                 unsafe { existing.destroy(); }
-                return glib::Propagation::Stop.into();
             }
 
             let screen = gdk::Screen::default().unwrap();
@@ -480,12 +508,15 @@ pub fn build_ui(app: &Application) {
             }
 
             *active_popup.borrow_mut() = Some(popup.clone());
+            *popup_source.borrow_mut() = Some("color".to_string());
             popup.show_all();
 
             {
                 let active_ref = active_popup.clone();
+                let source_ref = popup_source.clone();
                 popup.connect_focus_out_event(move |w, _| {
                     *active_ref.borrow_mut() = None;
+                    *source_ref.borrow_mut() = None;
                     unsafe { w.destroy(); }
                     glib::Propagation::Proceed.into()
                 });
@@ -525,10 +556,16 @@ pub fn build_ui(app: &Application) {
     }));
 
     zoom_btn.connect_clicked(
-        clone!(@strong state, @strong overlay_win, @strong zoom_btn, @strong active_popup, @strong menu_win => move |_| {
+        clone!(@strong state, @strong overlay_win, @strong zoom_btn, @strong active_popup, @strong menu_win, @strong popup_source => move |_| {
+            if *popup_source.borrow() == Some("arkaplan".to_string()) {
+                if let Some(existing) = active_popup.borrow_mut().take() {
+                    unsafe { existing.destroy(); }
+                }
+                *popup_source.borrow_mut() = None;
+                return;
+            }
             if let Some(existing) = active_popup.borrow_mut().take() {
                 unsafe { existing.destroy(); }
-                return;
             }
 
             let screen = gdk::Screen::default().unwrap();
@@ -722,12 +759,15 @@ pub fn build_ui(app: &Application) {
             }
 
             *active_popup.borrow_mut() = Some(popup.clone());
+            *popup_source.borrow_mut() = Some("arkaplan".to_string());
             popup.show_all();
 
             {
                 let active_ref = active_popup.clone();
+                let source_ref = popup_source.clone();
                 popup.connect_focus_out_event(move |w, _| {
                     *active_ref.borrow_mut() = None;
+                    *source_ref.borrow_mut() = None;
                     unsafe { w.destroy(); }
                     glib::Propagation::Proceed.into()
                 });
